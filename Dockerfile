@@ -24,5 +24,4 @@ COPY pytest.ini .
 
 RUN mkdir -p /app/input /app/output
 
-ENTRYPOINT ["python", "etl_accidents/etl.py"]
-CMD ["--input-dir", "/app/input", "--output-dir", "/app/output"]
+CMD ["python", "etl_accidents/etl.py", "--input-dir", "/app/input", "--output-dir", "/app/output"]

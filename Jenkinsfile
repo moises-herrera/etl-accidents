@@ -31,7 +31,7 @@ pipeline {
                         docker run --rm \
                             --name etl-tests-${BUILD_NUMBER} \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            python -m pytest tests/ -v --tb=short
+                            /bin/bash -c "python -m pytest tests/ -v --tb=short"
                     """
                 }
             }
@@ -59,8 +59,7 @@ pipeline {
                             -v ${INPUT_DIR}:/app/input:ro \
                             -v ${OUTPUT_DIR}:/app/output \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            --input-dir /app/input \
-                            --output-dir /app/output
+                            /bin/bash -c "python etl_accidents/etl.py --input-dir /app/input --output-dir /app/output"
                     """
                 }
             }

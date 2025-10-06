@@ -63,8 +63,13 @@ docker run --rm \
   -v $(pwd)/input:/app/input:ro \
   -v $(pwd)/output:/app/output \
   etl-spark-accidents:latest \
-  --input-dir /app/input \
-  --output-dir /app/output
+  /bin/bash -c "python etl_accidents/etl.py --input-dir /app/input --output-dir /app/output"
+```
+
+#### 4. Ejecutar tests
+
+```bash
+docker run --rm --name etl-tests etl-spark-accidents:latest /bin/bash -c "python -m pytest tests/ -v --tb=short"
 ```
 
 ### Ejecución Local
