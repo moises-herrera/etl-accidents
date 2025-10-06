@@ -14,6 +14,7 @@ from pyspark.sql.functions import (
     upper,
     desc,
 )
+import kagglehub
 
 
 def create_spark_session(app_name="US_Accidents_ETL"):
@@ -261,10 +262,10 @@ def main():
     args = parser.parse_args()
 
     input_path = os.path.join(args.input_dir, "US_Accidents_March23.csv")
-
-    if not os.path.exists(input_path):
-        print(f"Error: El archivo {input_path} no existe")
-        return 1
+    
+    if not os.path.exists(input_path) or os.path.getsize(input_path) == 0:
+        path = kagglehub.dataset_download("sobhanmoosavi/us-accidents", "US_Accidents_March23.csv")
+        input_path = os.path.dirname(path)
 
     print("\n" + "=" * 80)
     print("ETL - ANÁLISIS DE ACCIDENTES DE TRÁFICO EN EE.UU.")
@@ -273,8 +274,7 @@ def main():
     try:
         spark = create_spark_session()
 
-        input_abs_path = os.path.abspath(args.input_dir)
-        df_raw = extract_data(spark, input_abs_path)
+        df_raw = extract_data(spark, input_path)
 
         df_transformed = transform_data(df_raw)
 

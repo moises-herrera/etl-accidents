@@ -1,5 +1,10 @@
 pyspark==4.0.1
 pyarrow==21.0.0
 pandas==2.3.3
-numpy==2.3.3
+numpy==2.2.6
 fastparquet==2024.11.0
+pytest==8.4.2
+pytest-cov==7.0.0
+matplotlib==3.10.6
+seaborn==0.13.2
+kagglehub==0.3.13

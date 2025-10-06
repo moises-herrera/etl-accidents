@@ -18,9 +18,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-COPY etl.py .
+COPY etl_accidents/ ./etl_accidents/
+COPY tests/ ./tests/
+COPY pytest.ini .
 
 RUN mkdir -p /app/input /app/output
 
-ENTRYPOINT ["python", "etl.py"]
+ENTRYPOINT ["python", "etl_accidents/etl.py"]
 CMD ["--input-dir", "/app/input", "--output-dir", "/app/output"]

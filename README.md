@@ -41,6 +41,7 @@ El ETL realiza las siguientes operaciones:
 - **Pandas 2.3.3** - Análisis de datos
 - **Docker** - Contenerización
 - **Python 3.13** - Lenguaje base
+- **pytest** - Framework de testing
 
 ## Uso
 
@@ -87,4 +88,18 @@ pip install -r requirements.txt
 
 ```bash
 python etl.py --input-dir input/ --output-dir output/
+```
+
+## Testing
+
+### Ejecutar todos los tests:
+
+```bash
+pytest tests/
+```
+
+### Ejecutar tests con coverage:
+
+```bash
+pytest tests/ --cov=etl_accidents --cov-report=html
 ```
