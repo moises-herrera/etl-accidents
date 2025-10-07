@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'python:3.13-slim'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
     
     environment {
         DOCKER_TLS_VERIFY = '0'
@@ -13,21 +8,21 @@ pipeline {
         DOCKER_IMAGE = 'etl-accidents'
         DOCKER_TAG = 'latest'
         
-        INPUT_DIR = "${WORKSPACE}/input"
-        OUTPUT_DIR = "${WORKSPACE}/output"
+        INPUT_DIR = "${WORKSPACE}\\input"
+        OUTPUT_DIR = "${WORKSPACE}\\output"
     }
     
     stages {
         stage('Build') {
             steps {
                 script {
-                    sh """
-                        echo "Building Docker image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+                    bat """
+                        echo Building Docker image: %DOCKER_IMAGE%:%DOCKER_TAG%
+                        docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% .
                     """
                     
                     // Verificar que la imagen se creó correctamente
-                    sh "docker images | grep ${DOCKER_IMAGE}"
+                    bat "docker images | findstr /I %DOCKER_IMAGE%"
                 }
             }
         }
@@ -35,10 +30,10 @@ pipeline {
         stage('Tests') {
             steps {
                 script {
-                    sh """
-                        docker run --rm \
-                            --name etl-tests-${BUILD_NUMBER} \
-                            ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                    bat """
+                        docker run --rm ^
+                            --name etl-tests-%BUILD_NUMBER% ^
+                            %DOCKER_IMAGE%:%DOCKER_TAG% ^
                             /bin/bash -c "python -m pytest tests/ -v --tb=short"
                     """
                 }
@@ -59,16 +54,17 @@ pipeline {
         stage('Run ETL') {
             steps {
                 script {
-                    sh "mkdir -p ${OUTPUT_DIR}"
+                    bat "mkdir %OUTPUT_DIR%"
                     
-                    sh """
-                        docker run --rm \
-                            --name etl-run-${BUILD_NUMBER} \
-                            -v ${INPUT_DIR}:/app/input:ro \
-                            -v ${OUTPUT_DIR}:/app/output \
-                            ${DOCKER_IMAGE}:${DOCKER_TAG} \
+                    bat """
+                        docker run --rm ^
+                            --name etl-run-%BUILD_NUMBER% ^
+                            -v %INPUT_DIR%:/app/input:ro ^
+                            -v %OUTPUT_DIR%:/app/output ^
+                            %DOCKER_IMAGE%:%DOCKER_TAG% ^
                             /bin/bash -c "python etl_accidents/etl.py --input-dir /app/input --output-dir /app/output"
                     """
+
                 }
             }
             post {
@@ -78,9 +74,9 @@ pipeline {
                 success {
                     echo 'ETL ejecutado exitosamente'
  
-                    sh """
-                        echo "Archivos generados en ${OUTPUT_DIR}:"
-                        ls -lh ${OUTPUT_DIR}
+                    bat """
+                        echo Archivos generados en %OUTPUT_DIR%:
+                        dir %OUTPUT_DIR%
                     """
                 }
                 failure {
@@ -107,10 +103,7 @@ pipeline {
         always {
             echo 'Pipeline completado'
             script {
-                sh '''
-                    # Limpiar contenedores detenidos
-                    docker container prune -f
-                '''
+                bat 'docker container prune -f'
             }
         }
         success {
