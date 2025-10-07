@@ -25,16 +25,51 @@ pipeline {
             steps {
                 script {
                     sh """
-                        docker run --rm \
+                        mkdir -p ./test-results ./coverage
+                        chmod 777 ./test-results ./coverage
+                    """
+
+                    sh """
+                        docker run \
                             --name etl-tests-${BUILD_NUMBER} \
+                            -v \$(pwd)/test-results:/app/test-results \
+                            -v \$(pwd)/coverage:/app/coverage \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            /bin/bash -c "python -m pytest tests/ -v --tb=short"
+                            /bin/bash -c "python -m pytest tests/ -v --tb=short \
+                                --junitxml=/app/test-results/junit.xml \
+                                --cov=etl_accidents \
+                                --cov-report=html:/app/coverage/html \
+                                --cov-report=xml:/app/coverage/coverage.xml \
+                                --cov-report=term"
+
+                        docker cp etl-tests-${BUILD_NUMBER}:/app/coverage/. ./coverage/
+                        docker cp etl-tests-${BUILD_NUMBER}:/app/test-results/. ./test-results/
+                        docker rm -f etl-tests-${BUILD_NUMBER}
                     """
                 }
             }
             post {
                 always {
                     echo 'Tests completados'
+                    
+                    // Publicar resultados de tests JUnit
+                    junit allowEmptyResults: true, testResults: 'test-results/junit.xml'
+                    
+                    // Archivar reportes de cobertura
+                    archiveArtifacts artifacts: 'test-results/**/*.xml,coverage/**/*', 
+                                     allowEmptyArchive: true,
+                                     fingerprint: true
+                    
+                    // Publicar reporte de cobertura HTML
+                    publishHTML([
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'coverage/html',
+                        reportFiles: 'index.html',
+                        reportName: 'Coverage Report',
+                        reportTitles: 'Code Coverage'
+                    ])
                 }
                 success {
                     echo 'Todos los tests pasaron exitosamente'
@@ -49,39 +84,34 @@ pipeline {
             steps {
                 script {
                     sh """
-                        mkdir -p ./input ./output ./cache
-                        chmod 777 ./output ./cache
+                        mkdir -p ./input ./output
+                        chmod 777 ./output
                     """
 
                     sh """
-                        docker run --rm \
+                        docker run \
                             --name etl-run-${BUILD_NUMBER} \
-                            --user \$(id -u):\$(id -g) \
-                            -e KAGGLEHUB_CACHE_DIR=/app/cache \
-                            -e HOME=/app/cache \
                             -v \$(pwd)/input:/app/input:ro \
                             -v \$(pwd)/output:/app/output \
-                            -v \$(pwd)/cache:/app/cache \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            /bin/bash -c "python etl_accidents/etl.py --input-dir /app/input --output-dir /app/output"
+                            /bin/bash -c "python etl_accidents/etl.py --input-dir /app/input --output-dir /app/output && python scripts/generate_charts.py"
+                        
+                        docker cp etl-run-${BUILD_NUMBER}:/app/output/. ./output/
+                        
+                        docker rm -f etl-run-${BUILD_NUMBER}
                     """
                 }
             }
             post {
                 always {
                     echo 'ETL finalizado'
-
-                    sh """
-                        echo "Contenido de output/"
-                        ls -lR ./output
-                    """
                 }
                 success {
                     echo 'ETL ejecutado exitosamente'
 
                     sh """
-                        echo "Archivos generados en output/:":
-                        find ./output -type f -name "*.parquet" | head -20
+                        echo "Archivos generados en output/:"
+                        ls -lh ./output
                     """
                 }
                 failure {
@@ -98,7 +128,7 @@ pipeline {
                                      fingerprint: true,
                                      onlyIfSuccessful: true
 
-                    echo 'Artifacts archivados exitosamente'
+                    echo 'Artifacts guardados exitosamente'
                 }
             }
         }
@@ -111,8 +141,6 @@ pipeline {
                 sh '''
                     # Limpiar contenedores detenidos
                     docker container prune -f
-                    
-                    rm -rf ./cache
                 '''
             }
         }
