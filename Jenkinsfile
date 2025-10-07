@@ -48,7 +48,10 @@ pipeline {
         stage('Run ETL') {
             steps {
                 script {
-                    sh "mkdir -p ./input ./output"
+                    sh """
+                        mkdir -p ./input ./output
+                        chmod 777 ./output
+                    """
 
                     sh """
                         docker run --rm \
@@ -63,6 +66,15 @@ pipeline {
             post {
                 always {
                     echo 'ETL finalizado'
+
+                    sh """
+                        echo "Contenido del workspace"
+                        pwd
+                        ls -la
+                        
+                        echo "Contenido de output/"
+                        ls -lR ./output || echo "output/ vacío o no existe"
+                    """
                 }
                 success {
                     echo 'ETL ejecutado exitosamente'
@@ -81,7 +93,7 @@ pipeline {
         stage('Archive Artifacts') {
             steps {
                 script {
-                    archiveArtifacts artifacts: 'output/**/*.parquet', 
+                    archiveArtifacts artifacts: 'output/**/*', 
                                      allowEmptyArchive: false,
                                      fingerprint: true,
                                      onlyIfSuccessful: true
