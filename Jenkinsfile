@@ -84,8 +84,8 @@ pipeline {
         stage('Archive Artifacts') {
             steps {
                 script {
-                    archiveArtifacts artifacts: 'output/**/*.parquet,output/**/*.png', 
-                                     allowEmptyArchive: true,
+                    archiveArtifacts artifacts: 'output/**/*.parquet', 
+                                     allowEmptyArchive: false,
                                      fingerprint: true,
                                      onlyIfSuccessful: true
 

@@ -228,16 +228,18 @@ def load_data(temporal_metrics, categorical_metrics, output_dir):
     print("\n" + "=" * 80)
     print("FASE 3: CARGA DE RESULTADOS")
     print("=" * 80)
-    path = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(path, output_dir)
+    
+    os.makedirs(output_dir, exist_ok=True)
+    
+    print(f"Guardando resultados en: {output_dir}")
 
     for key, df in temporal_metrics.items():
         output_path = os.path.join(output_dir, f"accidents_{key}.parquet")
-        df.write.mode("overwrite").parquet(f"file:///{output_path}")
+        df.write.mode("overwrite").parquet(output_path)
 
     for key, df in categorical_metrics.items():
         output_path = os.path.join(output_dir, f"{key}.parquet")
-        df.write.mode("overwrite").parquet(f"file:///{output_path}")
+        df.write.mode("overwrite").parquet(output_path)
 
     print(f"\nTodos los archivos guardados en: {output_dir}")
 
