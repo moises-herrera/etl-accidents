@@ -2,6 +2,9 @@ pipeline {
     agent any
     
     environment {
+        env.DOCKER_TLS_VERIFY = '0'
+        env.DOCKER_CERT_PATH = ''
+
         DOCKER_IMAGE = 'etl-accidents'
         DOCKER_TAG = 'latest'
         
@@ -107,34 +110,9 @@ pipeline {
         }
         success {
             echo 'Pipeline ejecutado exitosamente'
-            emailext(
-                subject: "Pipeline exitoso: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
-                body: """
-                    <h2>Pipeline ejecutado exitosamente</h2>
-                    <p><strong>Job:</strong> ${env.JOB_NAME}</p>
-                    <p><strong>Build:</strong> ${env.BUILD_NUMBER}</p>
-                    <p><strong>Status:</strong> SUCCESS</p>
-                    <p><a href="${env.BUILD_URL}">Ver build</a></p>
-                """,
-                to: '${DEFAULT_RECIPIENTS}',
-                mimeType: 'text/html'
-            )
         }
         failure {
             echo 'Pipeline falló'
-            emailext(
-                subject: "Pipeline fallido: ${env.JOB_NAME} - Build #${env.BUILD_NUMBER}",
-                body: """
-                    <h2>Pipeline falló</h2>
-                    <p><strong>Job:</strong> ${env.JOB_NAME}</p>
-                    <p><strong>Build:</strong> ${env.BUILD_NUMBER}</p>
-                    <p><strong>Status:</strong> FAILED</p>
-                    <p><a href="${env.BUILD_URL}">Ver build</a></p>
-                    <p><a href="${env.BUILD_URL}/console">Ver logs</a></p>
-                """,
-                to: '${DEFAULT_RECIPIENTS}',
-                mimeType: 'text/html'
-            )
         }
         unstable {
             echo 'Pipeline inestable'
