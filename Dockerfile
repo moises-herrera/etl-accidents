@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 COPY etl_accidents/ ./etl_accidents/
+COPY scripts/ ./scripts/
 COPY tests/ ./tests/
 COPY pytest.ini .
 
