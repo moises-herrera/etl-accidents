@@ -1,39 +1,36 @@
 pipeline {
     agent any
-    
-    environment {
-        DOCKER_TLS_VERIFY = '0'
-        DOCKER_CERT_PATH = ''
 
+    environment {
         DOCKER_IMAGE = 'etl-accidents'
         DOCKER_TAG = 'latest'
-        
-        INPUT_DIR = "${WORKSPACE}\\input"
-        OUTPUT_DIR = "${WORKSPACE}\\output"
+
+        INPUT_DIR = "${WORKSPACE}/input"
+        OUTPUT_DIR = "${WORKSPACE}/output"
     }
-    
+
     stages {
         stage('Build') {
             steps {
                 script {
-                    bat """
-                        echo Building Docker image: %DOCKER_IMAGE%:%DOCKER_TAG%
-                        docker build -t %DOCKER_IMAGE%:%DOCKER_TAG% .
+                    sh """
+                        echo "Building Docker image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                        docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
                     """
-                    
+
                     // Verificar que la imagen se creó correctamente
-                    bat "docker images | findstr /I %DOCKER_IMAGE%"
+                    sh "docker images | grep ${DOCKER_IMAGE}"
                 }
             }
         }
-        
+
         stage('Tests') {
             steps {
                 script {
-                    bat """
-                        docker run --rm ^
-                            --name etl-tests-%BUILD_NUMBER% ^
-                            %DOCKER_IMAGE%:%DOCKER_TAG% ^
+                    sh """
+                        docker run --rm \
+                            --name etl-tests-${BUILD_NUMBER} \
+                            ${DOCKER_IMAGE}:${DOCKER_TAG} \
                             /bin/bash -c "python -m pytest tests/ -v --tb=short"
                     """
                 }
@@ -50,21 +47,20 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Run ETL') {
             steps {
                 script {
-                    bat "mkdir %OUTPUT_DIR%"
-                    
-                    bat """
-                        docker run --rm ^
-                            --name etl-run-%BUILD_NUMBER% ^
-                            -v %INPUT_DIR%:/app/input:ro ^
-                            -v %OUTPUT_DIR%:/app/output ^
-                            %DOCKER_IMAGE%:%DOCKER_TAG% ^
+                    sh "mkdir -p ${OUTPUT_DIR}"
+
+                    sh """
+                        docker run --rm \
+                            --name etl-run-${BUILD_NUMBER} \
+                            -v ${INPUT_DIR}:/app/input:ro \
+                            -v ${OUTPUT_DIR}:/app/output \
+                            ${DOCKER_IMAGE}:${DOCKER_TAG} \
                             /bin/bash -c "python etl_accidents/etl.py --input-dir /app/input --output-dir /app/output"
                     """
-
                 }
             }
             post {
@@ -73,10 +69,10 @@ pipeline {
                 }
                 success {
                     echo 'ETL ejecutado exitosamente'
- 
-                    bat """
-                        echo Archivos generados en %OUTPUT_DIR%:
-                        dir %OUTPUT_DIR%
+
+                    sh """
+                        echo "Archivos generados en ${OUTPUT_DIR}:"
+                        ls -lh ${OUTPUT_DIR}
                     """
                 }
                 failure {
@@ -84,7 +80,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Archive Artifacts') {
             steps {
                 script {
@@ -92,18 +88,21 @@ pipeline {
                                      allowEmptyArchive: true,
                                      fingerprint: true,
                                      onlyIfSuccessful: true
-                    
+
                     echo 'Artifacts archivados exitosamente'
                 }
             }
         }
     }
-    
+
     post {
         always {
             echo 'Pipeline completado'
             script {
-                bat 'docker container prune -f'
+                sh '''
+                    # Limpiar contenedores detenidos
+                    docker container prune -f
+                '''
             }
         }
         success {
