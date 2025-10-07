@@ -2,8 +2,8 @@ pipeline {
     agent any
     
     environment {
-        env.DOCKER_TLS_VERIFY = '0'
-        env.DOCKER_CERT_PATH = ''
+        DOCKER_TLS_VERIFY = '0'
+        DOCKER_CERT_PATH = ''
 
         DOCKER_IMAGE = 'etl-accidents'
         DOCKER_TAG = 'latest'
