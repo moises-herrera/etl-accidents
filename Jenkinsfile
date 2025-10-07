@@ -4,9 +4,6 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'etl-accidents'
         DOCKER_TAG = 'latest'
-
-        INPUT_DIR = "${WORKSPACE}/input"
-        OUTPUT_DIR = "${WORKSPACE}/output"
     }
 
     stages {
@@ -51,13 +48,13 @@ pipeline {
         stage('Run ETL') {
             steps {
                 script {
-                    sh "mkdir -p ${OUTPUT_DIR}"
+                    sh "mkdir -p ./input ./output"
 
                     sh """
                         docker run --rm \
                             --name etl-run-${BUILD_NUMBER} \
-                            -v ${INPUT_DIR}:/app/input:ro \
-                            -v ${OUTPUT_DIR}:/app/output \
+                            -v \$(pwd)/input:/app/input:ro \
+                            -v \$(pwd)/output:/app/output \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
                             /bin/bash -c "python etl_accidents/etl.py --input-dir /app/input --output-dir /app/output"
                     """
@@ -71,8 +68,8 @@ pipeline {
                     echo 'ETL ejecutado exitosamente'
 
                     sh """
-                        echo "Archivos generados en ${OUTPUT_DIR}:"
-                        ls -lh ${OUTPUT_DIR}
+                        echo "Archivos generados en output/:"
+                        ls -lh ./output
                     """
                 }
                 failure {
