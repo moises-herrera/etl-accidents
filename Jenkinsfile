@@ -49,7 +49,6 @@ pipeline {
             steps {
                 script {
                     sh """
-                        rm -rf ./input ./output
                         mkdir -p ./input ./output
                         chmod 777 ./output
                     """
@@ -57,20 +56,11 @@ pipeline {
                     sh """
                         docker run --rm \
                             --name etl-run-${BUILD_NUMBER} \
+                            --user \$(id -u):\$(id -g) \
                             -v \$(pwd)/input:/app/input:ro \
                             -v \$(pwd)/output:/app/output \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
-                            /bin/bash -c "set -x && \
-                                echo 'Verificando directorios montados:' && \
-                                ls -la /app/ && \
-                                echo 'Contenido de /app/output antes:' && \
-                                ls -la /app/output && \
-                                echo 'Ejecutando ETL...' && \
-                                python etl_accidents/etl.py --input-dir /app/input --output-dir /app/output && \
-                                echo 'Contenido de /app/output después:' && \
-                                ls -lR /app/output && \
-                                echo 'Verificando permisos:' && \
-                                ls -la /app/output"
+                            /bin/bash -c "python etl_accidents/etl.py --input-dir /app/input --output-dir /app/output"
                     """
                 }
             }
@@ -79,12 +69,8 @@ pipeline {
                     echo 'ETL finalizado'
 
                     sh """
-                        echo "Contenido del workspace"
-                        pwd
-                        ls -la
-                        
                         echo "Contenido de output/"
-                        ls -lR ./output || echo "output/ vacío o no existe"
+                        ls -lR ./output
                     """
                 }
                 success {
