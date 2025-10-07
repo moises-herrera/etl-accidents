@@ -49,21 +49,21 @@ pipeline {
             steps {
                 script {
                     sh """
-                        mkdir -p ./input ./output ./cache
-                        chmod 777 ./output ./cache
+                        mkdir -p ./input ./output
+                        chmod 777 ./output
                     """
 
                     sh """
-                        docker run --rm \
+                        docker run \
                             --name etl-run-${BUILD_NUMBER} \
-                            --user \$(id -u):\$(id -g) \
-                            -e KAGGLEHUB_CACHE_DIR=/app/cache \
-                            -e HOME=/app/cache \
                             -v \$(pwd)/input:/app/input:ro \
                             -v \$(pwd)/output:/app/output \
-                            -v \$(pwd)/cache:/app/cache \
                             ${DOCKER_IMAGE}:${DOCKER_TAG} \
                             /bin/bash -c "python etl_accidents/etl.py --input-dir /app/input --output-dir /app/output"
+                        
+                        docker cp etl-run-${BUILD_NUMBER}:/app/output/. ./output/
+                        
+                        docker rm -f etl-run-${BUILD_NUMBER}
                     """
                 }
             }
@@ -80,8 +80,8 @@ pipeline {
                     echo 'ETL ejecutado exitosamente'
 
                     sh """
-                        echo "Archivos generados en output/:":
-                        find ./output -type f -name "*.parquet" | head -20
+                        echo "Archivos generados en output/:"
+                        ls -lh ./output
                     """
                 }
                 failure {
@@ -111,8 +111,6 @@ pipeline {
                 sh '''
                     # Limpiar contenedores detenidos
                     docker container prune -f
-                    
-                    rm -rf ./cache
                 '''
             }
         }
